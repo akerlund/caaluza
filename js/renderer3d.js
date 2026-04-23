@@ -28,6 +28,32 @@ function wz(z) { return -z; }
 
 var _studGeo  = null;
 var _renderer, _scene, _camera, _controls, _dirLight;
+var _captureRenderer = null;
+var _captureCamera = null;
+
+function getCaptureRenderer(size) {
+  if (!_captureRenderer) {
+    _captureRenderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    _captureRenderer.setPixelRatio(1);
+    _captureRenderer.shadowMap.enabled = true;
+    _captureRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    _captureRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+    _captureRenderer.toneMappingExposure = 1.0;
+  }
+  _captureRenderer.setSize(size, size);
+  return _captureRenderer;
+}
+
+function getCaptureCamera(fov) {
+  if (!_captureCamera)
+    _captureCamera = new THREE.PerspectiveCamera(fov, 1, 0.1, 500);
+  _captureCamera.fov = fov;
+  _captureCamera.aspect = 1;
+  _captureCamera.near = 0.1;
+  _captureCamera.far = 500;
+  _captureCamera.updateProjectionMatrix();
+  return _captureCamera;
+}
 
 function init3D(container) {
   _renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -148,18 +174,31 @@ function buildScene(bricks, plateLength, plateWidth, playerCount) {
 
   // Remove all meshes and sprites from previous build.
   var toRemove = [];
+  var matsToDispose = new Set();
+  var geosToDispose = new Set();
   _scene.traverse(function(obj) {
     if (obj.isMesh || obj.isSprite) toRemove.push(obj);
   });
   for (var i = 0; i < toRemove.length; i++) {
     var obj = toRemove[i];
-    if (obj.geometry) obj.geometry.dispose();
+    if (obj.geometry && obj.geometry !== _studGeo)
+      geosToDispose.add(obj.geometry);
     if (obj.material) {
-      if (obj.material.map) obj.material.map.dispose();
-      obj.material.dispose();
+      if (Array.isArray(obj.material)) {
+        for (var mi = 0; mi < obj.material.length; mi++)
+          matsToDispose.add(obj.material[mi]);
+      } else {
+        matsToDispose.add(obj.material);
+      }
     }
     _scene.remove(obj);
   }
+
+  geosToDispose.forEach(function(geo) { geo.dispose(); });
+  matsToDispose.forEach(function(mat) {
+    if (mat.map) mat.map.dispose();
+    mat.dispose();
+  });
 
   if (!_studGeo)
     _studGeo = new THREE.CylinderGeometry(STUD_RADIUS, STUD_RADIUS, STUD_HEIGHT, STUD_SEGS);
@@ -277,6 +316,8 @@ function buildScene(bricks, plateLength, plateWidth, playerCount) {
 // captureCornerSnapshots — one per player, corner views (no labels).
 // --------------------------------------------------------------------------
 function captureCornerSnapshots(plateLength, plateWidth, playerCount) {
+  if (!_scene) return [];
+
   playerCount = playerCount !== undefined ? playerCount : 4;
   var wxC  = (plateLength / 2 - 0.5) * STUD;
   var wzC  = wz((plateWidth  / 2 - 0.5) * STUD);
@@ -292,12 +333,8 @@ function captureCornerSnapshots(plateLength, plateWidth, playerCount) {
   ];
 
   var sz  = 512;
-  var off = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-  off.setSize(sz, sz);
-  off.shadowMap.enabled = true;
-  off.shadowMap.type    = THREE.PCFSoftShadowMap;
-
-  var cam = new THREE.PerspectiveCamera(45, 1, 0.1, 500);
+  var off = getCaptureRenderer(sz);
+  var cam = getCaptureCamera(45);
   var results = [];
 
   for (var i = 0; i < playerCount; i++) {
@@ -307,7 +344,6 @@ function captureCornerSnapshots(plateLength, plateWidth, playerCount) {
     results.push(off.domElement.toDataURL('image/png'));
   }
 
-  off.dispose();
   return results;
 }
 
@@ -315,6 +351,8 @@ function captureCornerSnapshots(plateLength, plateWidth, playerCount) {
 // captureHeroSnapshot — high-res isometric render for the PDF overview page.
 // --------------------------------------------------------------------------
 function captureHeroSnapshot(plateLength, plateWidth) {
+  if (!_scene) return '';
+
   var wxC  = (plateLength / 2 - 0.5) * STUD;
   var wzC  = wz((plateWidth  / 2 - 0.5) * STUD);
   var tgt  = new THREE.Vector3(wxC, 0.5, wzC);
@@ -323,18 +361,11 @@ function captureHeroSnapshot(plateLength, plateWidth) {
   var h    = dist * 0.7;
 
   var sz  = 1024;
-  var off = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-  off.setSize(sz, sz);
-  off.shadowMap.enabled   = true;
-  off.shadowMap.type      = THREE.PCFSoftShadowMap;
-  off.toneMapping         = THREE.ACESFilmicToneMapping;
-  off.toneMappingExposure = 1.0;
-
-  var cam = new THREE.PerspectiveCamera(38, 1, 0.1, 500);
+  var off = getCaptureRenderer(sz);
+  var cam = getCaptureCamera(38);
   cam.position.set(wxC + dist * 0.75, h, wzC + dist * 0.75);
   cam.lookAt(tgt);
   off.render(_scene, cam);
   var result = off.domElement.toDataURL('image/png');
-  off.dispose();
   return result;
 }

@@ -397,6 +397,7 @@
 
     // Last generated state, needed by PDF handler.
     var _lastBricks = null, _lastParams = null;
+    var _runBusy = false, _runPending = false, _runVersion = 0;
 
     function getParams() {
       return {
@@ -414,10 +415,11 @@
       };
     }
 
-    function run() {
+    function run(done) {
       const p = getParams();
+      const runVersion = ++_runVersion;
 
-      // 1. Generate bricks.
+      // 1. Generate blocks.
       const bricks = generate(
         p.seed, p.brickCount, p.minHeight, p.maxHeight, p.maxExtent,
         p.maxBricksPerLayer, p.forceConnected, p.difficulty, p.plateLength, p.plateWidth
@@ -443,8 +445,14 @@
       // 3. 3D scene.
       buildScene(bricks, p.plateLength, p.plateWidth, p.playerCount);
 
+      // Mark run complete before snapshots so queue progress never depends on
+      // requestAnimationFrame timing.
+      if (done) done();
+
       // 4. Corner snapshots — only for active players.
       requestAnimationFrame(() => {
+        if (runVersion !== _runVersion) return;
+
         const snaps = captureCornerSnapshots(p.plateLength, p.plateWidth, p.playerCount);
         for (let i = 0; i < 4; i++) {
           const card = document.getElementById('snap' + (i + 1)).parentElement;
@@ -459,18 +467,41 @@
       });
     }
 
+    function scheduleRun() {
+      _runPending = true;
+      if (_runBusy) return;
+      _runBusy = true;
+      processScheduledRuns();
+    }
+
+    function processScheduledRuns() {
+      if (!_runPending) {
+        _runBusy = false;
+        return;
+      }
+
+      _runPending = false;
+      run(function() {
+        if (_runPending) {
+          requestAnimationFrame(processScheduledRuns);
+        } else {
+          _runBusy = false;
+        }
+      });
+    }
+
     // Generate button: regenerate with current seed.
-    document.getElementById('btn-generate').addEventListener('click', run);
+    document.getElementById('btn-generate').addEventListener('click', scheduleRun);
 
     // Randomize button: new random seed + regenerate.
     document.getElementById('btn-randomize').addEventListener('click', () => {
       document.getElementById('seed').value = Math.floor(Math.random() * 999999);
-      run();
+      scheduleRun();
     });
 
     // Pressing Enter in the seed field regenerates with that seed.
     document.getElementById('seed').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); run(); }
+      if (e.key === 'Enter') { e.preventDefault(); scheduleRun(); }
     });
 
     // --------------------------------------------------------------------------
@@ -645,7 +676,7 @@
     // Init 3D and auto-generate once the page (including CDN scripts) is ready.
     window.addEventListener('load', function () {
       init3D(document.getElementById('three-container'));
-      run();
+      scheduleRun();
     });
   </script>
 
