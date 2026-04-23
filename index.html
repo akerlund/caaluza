@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caaluza Statue Generator</title>
+  <style>
+    :root {
+      --bg: #f8f8f8;
+      --card: #fff;
+      --border: #ccc;
+      --accent: #2060c0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: #222;
+    }
+
+    header {
+      background: var(--accent);
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    header h1 {
+      font-size: 1.3rem;
+    }
+
+    header .version {
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ---- Form panel ---- */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .panel h2 {
+      font-size: 1rem;
+      margin-bottom: 12px;
+    }
+
+    .field {
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .field label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .field input[type=number],
+    .field select {
+      padding: 4px 6px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      width: 100%;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 6px;
+      align-items: end;
+    }
+
+    .field-row .field {
+      flex: 1;
+    }
+
+    .field-check {
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+    }
+
+    button {
+      cursor: pointer;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      background: #666;
+    }
+
+    /* ---- Tooltip icon ---- */
+    .info {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #aaa;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      cursor: help;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .info:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 20px;
+      top: -4px;
+      background: #333;
+      color: #fff;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 400;
+      white-space: nowrap;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* ---- 3D view ---- */
+    #three-container {
+      width: 100%;
+      height: clamp(500px, 65vh, 800px);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    /* ---- Outputs below ---- */
+    .outputs {
+      grid-column: 1 / -1;
+    }
+
+    .section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 20px 0 10px;
+    }
+
+    .bp-grid,
+    .snap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .bp-grid canvas,
+    .snap-grid img {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: #fff;
+    }
+
+    .card-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    @media print {
+
+      header,
+      .panel,
+      #three-container,
+      .snap-grid,
+      .section-title,
+      .btn-row {
+        display: none !important;
+      }
+
+      .outputs {
+        display: block !important;
+      }
+
+      .bp-grid {
+        display: block !important;
+      }
+
+      .bp-grid>div {
+        page-break-inside: avoid;
+        margin-bottom: 16px;
+      }
+
+      .bp-grid canvas {
+        width: 100% !important;
+        max-width: 600px;
+      }
+    }
+  </style>
+    <script data-goatcounter="https://akerlund.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+
+<body>
+
+  <header>
+    <h1>Caaluza Statue Generator</h1>
+    <span class="version">v0.0.0</span>
+  </header>
+
+  <div class="layout">
+    <!-- Left panel: parameters -->
+    <div class="panel">
+      <h2>Parameters</h2>
+
+      <div class="field">
+        <label>Seed <span class="info"
+            data-tip="Deterministic seed — same number always produces the same puzzle">?</span></label>
+        <input type="number" id="seed" value="42">
+      </div>
+
+      <div class="field-row">
+        <div class="field"><label>Plate Length <span class="info"
+              data-tip="Base plate size along X axis (in studs)">?</span></label><input type="number" id="plateLength"
+            value="8" min="2" max="32"></div>
+        <div class="field"><label>Plate Width <span class="info"
+              data-tip="Base plate size along Z axis (in studs)">?</span></label><input type="number" id="plateWidth"
+            value="8" min="2" max="32"></div>
+      </div>
+
+      <div class="field"><label>Block Count <span class="info"
+        data-tip="Target number of blocks to place (max 28 = 7 shapes × 4 colors)">?</span></label><input
+          type="number" id="brickCount" value="16" min="1" max="28"></div>
+
+      <div class="field-row">
+          <div class="field"><label>Min Height <span class="info"
+            data-tip="Climbing bias target — blocks prefer stacking upward until this layer is reached">?</span></label><input
+        type="number" id="minHeight" value="4" min="0" max="20"></div>
+        <div class="field"><label>Max Height <span class="info"
+            data-tip="Hard ceiling — no block can be placed at or above this layer">?</span></label><input
+        type="number" id="maxHeight" value="10" min="0" max="20"></div>
+      </div>
+
+      <div class="field"><label>Max Extent <span class="info"
+          data-tip="How far blocks may overhang past the plate edge (0 = no overhang, −1 = unlimited)">?</span></label><input
+          type="number" id="maxExtent" value="1" min="-1" max="10"></div>
+        <div class="field"><label>Max Blocks / Layer <span class="info"
+          data-tip="Cap on how many blocks can share the same vertical layer (0 = unlimited)">?</span></label><input
+          type="number" id="maxBricksPerLayer" value="6" min="0" max="28"></div>
+
+      <div class="field">
+        <label>Players <span class="info"
+            data-tip="How many players participate — controls which blueprints and 3D labels are produced">?</span></label>
+        <select id="playerCount">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Difficulty <span class="info"
+            data-tip="1 = single cluster, 2 = two disjoint clusters, 3 = three disjoint clusters">?</span></label>
+        <select id="difficulty">
+          <option value="1" selected>1 — Single cluster</option>
+          <option value="2">2 — Two clusters</option>
+          <option value="3">3 — Three clusters</option>
+        </select>
+      </div>
+
+      <div class="field field-check">
+        <input type="checkbox" id="forceConnected" checked>
+        <label for="forceConnected">Force Connected <span class="info"
+        data-tip="Every block must be face-adjacent to an existing block (always on at difficulty ≥ 2)">?</span></label>
+      </div>
+
+      <div class="btn-row">
+        <button id="btn-generate">Generate</button>
+        <button id="btn-randomize">🎲 Randomize</button>
+        <button class="btn-sm" id="btn-pdf">📄 Save to PDF</button>
+      </div>
+    </div>
+
+    <!-- Right: 3D view -->
+    <div>
+      <div id="three-container"></div>
+    </div>
+
+    <!-- Full-width outputs -->
+    <div class="outputs">
+      <div class="section-title">Player Blueprints</div>
+      <div class="bp-grid" id="bp-grid">
+        <div>
+          <div class="card-label">Caaluza (−Z)</div><canvas id="bp1"></canvas>
+        </div>
+        <div>
+          <div class="card-label">Oedan (+X)</div><canvas id="bp2"></canvas>
+        </div>
+        <div>
+          <div class="card-label">Sigarus (top)</div><canvas id="bp3"></canvas>
+        </div>
+        <div>
+          <div class="card-label">Alx (−X)</div><canvas id="bp4"></canvas>
+        </div>
+      </div>
+
+      <div class="section-title">Solution Views</div>
+      <div class="snap-grid" id="snap-grid">
+        <div>
+          <div class="card-label">Caaluza — corner view</div><img id="snap1">
+        </div>
+        <div>
+          <div class="card-label">Oedan — corner view</div><img id="snap2">
+        </div>
+        <div>
+          <div class="card-label">Sigarus — corner view</div><img id="snap3">
+        </div>
+        <div>
+          <div class="card-label">Alx — corner view</div><img id="snap4">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="./js/types.js"></script>
+  <script src="./js/rng.js"></script>
+  <script src="./js/mapgenerator.js"></script>
+  <script src="./js/blueprint.js"></script>
+  <script src="./js/renderer3d.js"></script>
+
+  <script>
+
+    const VERSION = '0.0.0';
+    const PLAYER_NAMES = ['Caaluza', 'Oedan', 'Sigarus', 'Alx'];
+
+    // Block palette: BrickColor → {r,g,b,a}
+    const brickPalette = new Map([
+      [BrickColor.Yellow, { r: 245, g: 197, b: 66, a: 255 }],
+      [BrickColor.Red, { r: 212, g: 32, b: 32, a: 255 }],
+      [BrickColor.Green, { r: 45, g: 142, b: 45, a: 255 }],
+      [BrickColor.Blue, { r: 32, g: 96, b: 192, a: 255 }],
+    ]);
+    const plateBodyColor = { r: 140, g: 140, b: 140, a: 255 };
+    const plateStudColor = { r: 160, g: 160, b: 160, a: 255 };
+    const paperColor     = { r: 255, g: 250, b: 240, a: 255 };
+    const outlineColor   = { r: 40,  g: 40,  b: 40,  a: 255 };
+
+    // CSS colour strings for canvas 2D drawing (inventory tiles).
+    const brickCSS = new Map();
+    brickPalette.forEach(function(rgba, color) {
+      brickCSS.set(color, 'rgb(' + rgba.r + ',' + rgba.g + ',' + rgba.b + ')');
+    });
+
+    // Last generated state, needed by PDF handler.
+    var _lastBricks = null, _lastParams = null;
+
+    function getParams() {
+      return {
+        seed: parseInt(document.getElementById('seed').value) || 0,
+        brickCount: parseInt(document.getElementById('brickCount').value) || 12,
+        minHeight: parseInt(document.getElementById('minHeight').value) || 0,
+        maxHeight: parseInt(document.getElementById('maxHeight').value) || 6,
+        maxExtent: parseInt(document.getElementById('maxExtent').value),
+        maxBricksPerLayer: parseInt(document.getElementById('maxBricksPerLayer').value) || 0,
+        forceConnected: document.getElementById('forceConnected').checked,
+        playerCount: parseInt(document.getElementById('playerCount').value) || 4,
+        difficulty: parseInt(document.getElementById('difficulty').value) || 1,
+        plateLength: parseInt(document.getElementById('plateLength').value) || 8,
+        plateWidth: parseInt(document.getElementById('plateWidth').value) || 8,
+      };
+    }
+
+    function run() {
+      const p = getParams();
+
+      // 1. Generate bricks.
+      const bricks = generate(
+        p.seed, p.brickCount, p.minHeight, p.maxHeight, p.maxExtent,
+        p.maxBricksPerLayer, p.forceConnected, p.difficulty, p.plateLength, p.plateWidth
+      );
+      _lastBricks = bricks;
+      _lastParams = p;
+
+      // 2. Blueprints — only for active players; hide the rest.
+      for (let pi = 1; pi <= 4; pi++) {
+        const card = document.getElementById('bp' + pi).parentElement;
+        if (pi <= p.playerCount) {
+          const bp = createForPlayer(
+            pi, p.seed, bricks, p.plateLength, p.plateWidth,
+            brickPalette, plateBodyColor, plateStudColor
+          );
+          bp.drawToCanvas(document.getElementById('bp' + pi), 24, paperColor, outlineColor, 1);
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      }
+
+      // 3. 3D scene.
+      buildScene(bricks, p.plateLength, p.plateWidth, p.playerCount);
+
+      // 4. Corner snapshots — only for active players.
+      requestAnimationFrame(() => {
+        const snaps = captureCornerSnapshots(p.plateLength, p.plateWidth, p.playerCount);
+        for (let i = 0; i < 4; i++) {
+          const card = document.getElementById('snap' + (i + 1)).parentElement;
+          if (i < p.playerCount) {
+            document.getElementById('snap' + (i + 1)).src = snaps[i];
+            card.style.display = '';
+          } else {
+            document.getElementById('snap' + (i + 1)).src = '';
+            card.style.display = 'none';
+          }
+        }
+      });
+    }
+
+    // Generate button: regenerate with current seed.
+    document.getElementById('btn-generate').addEventListener('click', run);
+
+    // Randomize button: new random seed + regenerate.
+    document.getElementById('btn-randomize').addEventListener('click', () => {
+      document.getElementById('seed').value = Math.floor(Math.random() * 999999);
+      run();
+    });
+
+    // Pressing Enter in the seed field regenerates with that seed.
+    document.getElementById('seed').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); run(); }
+    });
+
+    // --------------------------------------------------------------------------
+    // buildInventoryCanvas — top-down tile for every unique block type used.
+    // --------------------------------------------------------------------------
+    function buildInventoryCanvas(bricks) {
+      // Group by canonical shape (long side first) + color.
+      const groups = {}, order = [];
+      for (const b of bricks) {
+        const nL = Math.max(b.length, b.width);
+        const nW = Math.min(b.length, b.width);
+        const key = nL + 'x' + nW + ':' + b.color;
+        if (!groups[key]) { groups[key] = { l: nL, w: nW, color: b.color, n: 0 }; order.push(key); }
+        groups[key].n++;
+      }
+
+      const cell = 22, gap = 10, pad = 8, cols = 4;
+      const rows  = Math.ceil(order.length / cols);
+      const colW  = 4 * cell + gap;
+      const rowH  = 2 * cell + gap;
+      const canW  = pad + cols * colW;
+      const canH  = pad + rows * rowH + pad;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = canW; canvas.height = canH;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canW, canH);
+
+      order.forEach(function(key, i) {
+        const g   = groups[key];
+        const col = i % cols, row = Math.floor(i / cols);
+        const x0  = pad + col * colW;
+        const y0  = pad + row * rowH;
+        const bw  = g.l * cell, bh = g.w * cell;
+        const css = brickCSS.get(g.color) || '#ff00ff';
+
+        // Body fill.
+        ctx.fillStyle = css;
+        ctx.fillRect(x0, y0, bw, bh);
+
+        // Studs as circles.
+        const sr = cell * 0.28;
+        for (let sx = 0; sx < g.l; sx++) {
+          for (let sz = 0; sz < g.w; sz++) {
+            const cx = x0 + sx * cell + cell / 2;
+            const cy = y0 + sz * cell + cell / 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, sr, 0, Math.PI * 2);
+            ctx.fillStyle = css;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+
+        // Body outline.
+        ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x0 + 0.75, y0 + 0.75, bw - 1.5, bh - 1.5);
+      });
+
+      return canvas;
+    }
+
+    // --- Save to PDF ---
+    document.getElementById('btn-pdf').addEventListener('click', () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const p = getParams();
+      const seed = p.seed;
+
+      // Page dimensions (A4 landscape).
+      const pw = 297, ph = 210, m = 10;
+
+      // --- Page 1: Blueprints ---
+      doc.setFontSize(14);
+      doc.text(`Caaluza Puzzle \u2014 Seed: ${seed}`, m, 12);
+      doc.setFontSize(8);
+      doc.text(`Blocks: ${p.brickCount}  Height: ${p.minHeight}\u2013${p.maxHeight}  Difficulty: ${p.difficulty}  Plate: ${p.plateLength}\u00d7${p.plateWidth}`, m, 18);
+
+      const bpLabels = PLAYER_NAMES.map((n, i) => `${n} (${['\u2212Z', '+X', 'top', '\u2212X'][i]})`);
+      const cols = p.playerCount <= 2 ? 1 : 2;
+      const rows = Math.ceil(p.playerCount / cols);
+      const cellW = cols === 1 ? (pw - 2 * m) : (pw - 3 * m) / 2;
+      const cellH = rows === 1 ? (ph - 28 - 2 * m) : (ph - 28 - 3 * m) / 2;
+
+      for (let i = 0; i < p.playerCount; i++) {
+        const col = i % cols, row = Math.floor(i / cols);
+        const x = m + col * (cellW + m);
+        const y = 24 + row * (cellH + m);
+        const canvas = document.getElementById('bp' + (i + 1));
+        const aspect = canvas.width / canvas.height;
+        let imgW = cellW / 2, imgH = imgW / aspect;
+        if (imgH > (cellH - 6) / 2) { imgH = (cellH - 6) / 2; imgW = imgH * aspect; }
+        const imgX = x + (cellW - imgW) / 2;
+        const imgY = y + 6 + ((cellH - 6) - imgH) / 2;
+        doc.setFontSize(9);
+        doc.text(bpLabels[i], x + cellW / 2, y + 4, { align: 'center' });
+        doc.addImage(canvas.toDataURL('image/png'), 'PNG', imgX, imgY, imgW, imgH);
+      }
+
+      // --- Page 2: Solution views + full parameters ---
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.text(`Solution Views \u2014 Seed: ${seed}`, m, 12);
+
+      // Full parameter block.
+      doc.setFontSize(7);
+      const paramLines = [
+        `Version: ${VERSION}`,
+        `Seed: ${seed}  |  Plate: ${p.plateLength}\u00d7${p.plateWidth}  |  Blocks: ${p.brickCount}  |  Players: ${p.playerCount}  |  Difficulty: ${p.difficulty}`,
+        `Height: ${p.minHeight}\u2013${p.maxHeight}  |  Max Extent: ${p.maxExtent}  |  Max Blocks/Layer: ${p.maxBricksPerLayer}  |  Force Connected: ${p.forceConnected ? 'Yes' : 'No'}`,
+      ];
+      for (let i = 0; i < paramLines.length; i++)
+        doc.text(paramLines[i], m, 18 + i * 4);
+
+      const snapLabels = PLAYER_NAMES.map(n => `${n} — corner view`);
+      const snapTop = 18 + paramLines.length * 4 + 4;
+      const snapCols = p.playerCount <= 2 ? 1 : 2;
+      const snapRows = Math.ceil(p.playerCount / snapCols);
+      const snapCellW = snapCols === 1 ? (pw - 2 * m) : (pw - 3 * m) / 2;
+      const snapCellH = (ph - snapTop - (snapRows > 1 ? 3 : 2) * m) / snapRows;
+      const snapSize = Math.min(snapCellW, snapCellH - 6);
+
+      for (let i = 0; i < p.playerCount; i++) {
+        const col = i % snapCols, row = Math.floor(i / snapCols);
+        const x = m + col * (snapCellW + m);
+        const y = snapTop + row * (snapCellH + m);
+        doc.setFontSize(9);
+        doc.text(snapLabels[i], x, y);
+        const src = document.getElementById('snap' + (i + 1)).src;
+        if (src) doc.addImage(src, 'PNG', x, y + 2, snapSize, snapSize);
+      }
+
+      // --- Page 3: Block inventory — right half only, rotated -90° for folding ---
+      doc.addPage();
+
+      // Dashed fold guide at centre.
+      doc.setDrawColor(190, 190, 190);
+      doc.setLineDashPattern([3, 3], 0);
+      doc.line(pw / 2, 0, pw / 2, ph);
+      doc.setLineDashPattern([], 0);
+      doc.setDrawColor(0, 0, 0);
+
+      // Rotate inventory canvas -90° (counterclockwise) so content reads
+      // correctly when the page is folded and held portrait with the right edge up.
+      const invCan = buildInventoryCanvas(_lastBricks || []);
+      const rotCan = document.createElement('canvas');
+      rotCan.width  = invCan.height;
+      rotCan.height = invCan.width;
+      const rotCtx  = rotCan.getContext('2d');
+      rotCtx.translate(0, invCan.width);
+      rotCtx.rotate(-Math.PI / 2);
+      rotCtx.drawImage(invCan, 0, 0);
+
+      // Fit centred into right half with margins.
+      const rHalfX = pw / 2 + m;
+      const rHalfW = pw / 2 - 2 * m;
+      const rHalfH = ph - 2 * m;
+      const rotAsp = rotCan.width / rotCan.height;
+      let rotImgW = rHalfW, rotImgH = rHalfW / rotAsp;
+      if (rotImgH > rHalfH) { rotImgH = rHalfH; rotImgW = rHalfH * rotAsp; }
+      const rotImgX = rHalfX + (rHalfW - rotImgW) / 2;
+      const rotImgY = m + (rHalfH - rotImgH) / 2;
+      doc.addImage(rotCan.toDataURL('image/png'), 'PNG', rotImgX, rotImgY, rotImgW, rotImgH);
+
+      doc.save(`caaluza-puzzle-seed-${seed}.pdf`);
+    });
+
+    // Init 3D and auto-generate once the page (including CDN scripts) is ready.
+    window.addEventListener('load', function () {
+      init3D(document.getElementById('three-container'));
+      run();
+    });
+  </script>
+
+</body>
+
+</html>
