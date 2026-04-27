@@ -124,8 +124,95 @@
 
     .btn-row {
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
       margin-top: 12px;
+    }
+
+    .share-status {
+      margin-top: 8px;
+      min-height: 1.2em;
+      color: #52606d;
+      font-size: 0.8rem;
+    }
+
+    .share-group {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .share-group-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #52606d;
+    }
+
+    .share-button-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .share-button-grid button[hidden] {
+      display: none;
+    }
+
+    .share-status.error {
+      color: #9d2f2f;
+    }
+
+    .analysis-box {
+      margin-top: 16px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #f1f4f7;
+      display: grid;
+      gap: 8px;
+    }
+
+    .analysis-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      align-items: baseline;
+    }
+
+    .analysis-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .analysis-title strong {
+      font-size: 1rem;
+    }
+
+    .analysis-muted {
+      color: #52606d;
+      font-size: 0.82rem;
+    }
+
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 12px;
+      font-size: 0.84rem;
+    }
+
+    .analysis-grid .label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #52606d;
+      font-size: 0.75rem;
+    }
+
+    .analysis-grid .value {
+      display: block;
+      font-weight: 600;
+      margin-top: 2px;
     }
 
     .btn-sm {
@@ -162,7 +249,13 @@
       border-radius: 4px;
       font-size: 0.75rem;
       font-weight: 400;
-      white-space: nowrap;
+      white-space: normal;
+      line-height: 1.35;
+      width: min(360px, calc(100vw - 56px));
+      max-width: calc(100vw - 56px);
+      min-width: 240px;
+      text-transform: none;
+      letter-spacing: normal;
       z-index: 10;
       pointer-events: none;
     }
@@ -174,6 +267,41 @@
       border-radius: 8px;
       overflow: hidden;
       border: 1px solid var(--border);
+    }
+
+    body.map-only header,
+    body.map-only .panel,
+    body.blueprint-only header,
+    body.blueprint-only .panel {
+      display: none;
+    }
+
+    body.map-only .layout,
+    body.blueprint-only .layout {
+      grid-template-columns: 1fr;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    body.map-only .outputs,
+    body.blueprint-only .outputs {
+      grid-column: auto;
+    }
+
+    body.blueprint-only #three-container,
+    body.blueprint-only #solutions-title,
+    body.blueprint-only #snap-grid {
+      display: none;
+    }
+
+    body.blueprint-only #blueprint-title {
+      text-align: center;
+    }
+
+    body.blueprint-only .bp-grid {
+      grid-template-columns: minmax(280px, 720px);
+      justify-content: center;
     }
 
     /* ---- Outputs below ---- */
@@ -245,7 +373,7 @@
 
   <header>
     <h1>Caaluza Statue Generator</h1>
-    <span class="version">v0.0.0</span>
+    <span class="version">v0.1.0 (2026-04-28)</span>
   </header>
 
   <div class="layout">
@@ -320,6 +448,22 @@
         <button id="btn-randomize">🎲 Randomize</button>
         <button class="btn-sm" id="btn-pdf">📄 Save to PDF</button>
       </div>
+
+      <div class="share-group">
+        <div class="share-group-title">Blueprint URLs</div>
+        <div class="share-button-grid" id="share-button-grid">
+          <button class="btn-sm share-player-btn" data-player="0">🔗 Caaluza URL</button>
+          <button class="btn-sm share-player-btn" data-player="1">🔗 Oedan URL</button>
+          <button class="btn-sm share-player-btn" data-player="2">🔗 Sigarus URL</button>
+          <button class="btn-sm share-player-btn" data-player="3">🔗 Alx URL</button>
+        </div>
+      </div>
+
+      <div class="share-status" id="share-status"></div>
+
+      <div class="analysis-box" id="analysis-summary">
+        <div class="analysis-muted">Generate a puzzle to estimate solve moves and difficulty.</div>
+      </div>
     </div>
 
     <!-- Right: 3D view -->
@@ -329,7 +473,7 @@
 
     <!-- Full-width outputs -->
     <div class="outputs">
-      <div class="section-title">Player Blueprints</div>
+      <div class="section-title" id="blueprint-title">Player Blueprints</div>
       <div class="bp-grid" id="bp-grid">
         <div>
           <div class="card-label">Caaluza (−Z)</div><canvas id="bp1"></canvas>
@@ -345,7 +489,7 @@
         </div>
       </div>
 
-      <div class="section-title">Solution Views</div>
+      <div class="section-title" id="solutions-title">Solution Views</div>
       <div class="snap-grid" id="snap-grid">
         <div>
           <div class="card-label">Caaluza — corner view</div><img id="snap1">
@@ -370,12 +514,32 @@
   <script src="./js/rng.js"></script>
   <script src="./js/mapgenerator.js"></script>
   <script src="./js/blueprint.js"></script>
+  <script src="./js/puzzle-analyzer.js"></script>
   <script src="./js/renderer3d.js"></script>
 
   <script>
 
-    const VERSION = '0.0.0';
+    const ANALYSIS_MAX_MS = 5000;
+  const VERSION = '0.1.0';
+  const VERSION_DATE = '2026-04-28';
+  const VERSION_LABEL = 'v' + VERSION + ' (' + VERSION_DATE + ')';
     const PLAYER_NAMES = ['Caaluza', 'Oedan', 'Sigarus', 'Alx'];
+    const VIEW_MODE_APP = 'app';
+    const VIEW_MODE_MAP = 'map';
+    const VIEW_MODE_BLUEPRINT = 'blueprint';
+    const PARAM_DEFS = [
+      { key: 'seed', id: 'seed', type: 'number' },
+      { key: 'plateLength', id: 'plateLength', type: 'number' },
+      { key: 'plateWidth', id: 'plateWidth', type: 'number' },
+      { key: 'brickCount', id: 'brickCount', type: 'number' },
+      { key: 'minHeight', id: 'minHeight', type: 'number' },
+      { key: 'maxHeight', id: 'maxHeight', type: 'number' },
+      { key: 'maxExtent', id: 'maxExtent', type: 'number' },
+      { key: 'maxBricksPerLayer', id: 'maxBricksPerLayer', type: 'number' },
+      { key: 'playerCount', id: 'playerCount', type: 'number' },
+      { key: 'difficulty', id: 'difficulty', type: 'number' },
+      { key: 'forceConnected', id: 'forceConnected', type: 'boolean' },
+    ];
 
     // Block palette: BrickColor → {r,g,b,a}
     const brickPalette = new Map([
@@ -396,8 +560,10 @@
     });
 
     // Last generated state, needed by PDF handler.
-    var _lastBricks = null, _lastParams = null;
+    var _lastBricks = null, _lastParams = null, _lastAnalysis = null;
     var _runBusy = false, _runPending = false, _runVersion = 0;
+    var _viewMode = VIEW_MODE_APP;
+    var _blueprintPlayerIndex = null;
 
     function getParams() {
       return {
@@ -415,9 +581,187 @@
       };
     }
 
+    function setShareStatus(message, isError) {
+      const node = document.getElementById('share-status');
+      if (!node) return;
+      node.textContent = message || '';
+      node.classList.toggle('error', !!isError);
+    }
+
+    function clampToField(field, value) {
+      let result = value;
+      const minValue = parseInt(field.min, 10);
+      const maxValue = parseInt(field.max, 10);
+      if (Number.isFinite(minValue)) result = Math.max(result, minValue);
+      if (Number.isFinite(maxValue)) result = Math.min(result, maxValue);
+      return result;
+    }
+
+    function setNumberFieldFromQuery(field, rawValue) {
+      if (rawValue === null || rawValue === '') return;
+      const value = parseInt(rawValue, 10);
+      if (!Number.isFinite(value)) return;
+      field.value = String(clampToField(field, value));
+    }
+
+    function setBooleanFieldFromQuery(field, rawValue) {
+      if (rawValue === null) return;
+      field.checked = /^(1|true|yes|on)$/i.test(rawValue);
+    }
+
+    function parseBlueprintPlayer(rawValue) {
+      if (rawValue === null || rawValue === '') return null;
+      const value = parseInt(rawValue, 10);
+      if (!Number.isFinite(value)) return null;
+      return Math.max(0, Math.min(3, value));
+    }
+
+    function applyViewMode(viewMode) {
+      if (viewMode === VIEW_MODE_MAP || viewMode === VIEW_MODE_BLUEPRINT) {
+        _viewMode = viewMode;
+      } else {
+        _viewMode = VIEW_MODE_APP;
+      }
+
+      document.body.classList.toggle('map-only', _viewMode === VIEW_MODE_MAP);
+      document.body.classList.toggle('blueprint-only', _viewMode === VIEW_MODE_BLUEPRINT);
+    }
+
+    function applyParamsFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      applyViewMode(params.get('view'));
+      _blueprintPlayerIndex = parseBlueprintPlayer(params.get('blueprintPlayer'));
+
+      for (let i = 0; i < PARAM_DEFS.length; i++) {
+        const def = PARAM_DEFS[i];
+        const field = document.getElementById(def.id);
+        if (!field) continue;
+
+        if (def.type === 'boolean') setBooleanFieldFromQuery(field, params.get(def.key));
+        else setNumberFieldFromQuery(field, params.get(def.key));
+      }
+    }
+
+    function buildMapUrl(params, viewMode, blueprintPlayerIndex) {
+      const url = new URL(window.location.href);
+      url.search = '';
+      url.hash = '';
+
+      for (let i = 0; i < PARAM_DEFS.length; i++) {
+        const def = PARAM_DEFS[i];
+        const value = params[def.key];
+        url.searchParams.set(def.key, def.type === 'boolean' ? (value ? '1' : '0') : String(value));
+      }
+
+      if (viewMode === VIEW_MODE_MAP || viewMode === VIEW_MODE_BLUEPRINT)
+        url.searchParams.set('view', viewMode);
+
+      if (viewMode === VIEW_MODE_BLUEPRINT && blueprintPlayerIndex !== null && blueprintPlayerIndex !== undefined)
+        url.searchParams.set('blueprintPlayer', String(blueprintPlayerIndex));
+
+      return url.toString();
+    }
+
+    function syncCurrentUrl(params) {
+      history.replaceState(null, '', buildMapUrl(params, _viewMode, _blueprintPlayerIndex));
+    }
+
+    function copyUrlWithFeedback(url, successMessage) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function() {
+          setShareStatus(successMessage, false);
+        }).catch(function() {
+          window.prompt('Copy this URL', url);
+          setShareStatus('Clipboard access was blocked, so the URL was opened in a copy dialog instead.', false);
+        });
+        return;
+      }
+
+      window.prompt('Copy this URL', url);
+      setShareStatus('Clipboard is unavailable here, so the URL was opened in a copy dialog instead.', false);
+    }
+
+    function copyBlueprintUrl(playerIndex) {
+      const url = buildMapUrl(getParams(), VIEW_MODE_BLUEPRINT, playerIndex);
+      copyUrlWithFeedback(
+        url,
+        PLAYER_NAMES[playerIndex] + ' blueprint URL copied. Opening it will show only that blueprint.'
+      );
+    }
+
+    function updateShareButtons(playerCount) {
+      const buttons = document.querySelectorAll('.share-player-btn');
+      for (let i = 0; i < buttons.length; i++) {
+        const playerIndex = parseInt(buttons[i].getAttribute('data-player'), 10);
+        buttons[i].hidden = playerIndex >= playerCount;
+      }
+    }
+
+    function shouldShowBlueprintCard(playerIndex, playerCount) {
+      if (playerIndex > playerCount) return false;
+      if (_viewMode !== VIEW_MODE_BLUEPRINT) return true;
+      return _blueprintPlayerIndex === null ? true : playerIndex === _blueprintPlayerIndex + 1;
+    }
+
+    function shouldShowSnapshotCard(playerIndex, playerCount) {
+      if (_viewMode === VIEW_MODE_BLUEPRINT) return false;
+      return playerIndex >= 1 && playerIndex <= 4;
+    }
+
+    function renderAnalysis(analysis) {
+      const host = document.getElementById('analysis-summary');
+      if (!analysis) {
+        host.innerHTML = '<div class="analysis-muted">Generate a puzzle to estimate solve moves and difficulty.</div>';
+        return;
+      }
+
+      function classificationTip(currentAnalysis) {
+        switch (currentAnalysis.classification) {
+          case 'Easy':
+            return 'Easy means the solver usually had a clear next step, with very little trial and error or recovery.';
+          case 'Medium':
+            return 'Medium means the puzzle has some uncertainty, but the blueprints still guide most moves without many costly mistakes.';
+          case 'Hard':
+            return 'Hard means the solver often had to recover from wrong-looking placements, remove blocks, or deal with unstable structure.';
+          case 'Very hard':
+            return 'Very hard means the solver saw many competing placements or expensive recovery chains, so the puzzle needed a lot of trial, removal, or rebuilding.';
+          default:
+            return 'This label is a heuristic summary of the solver metrics. If the solver timed out or stayed unresolved, treat the label as less certain.';
+        }
+      }
+
+      function metricCell(label, value, tip) {
+        return '<div>' +
+          '<span class="label">' + label + ' <span class="info" data-tip="' + tip + '">?</span></span>' +
+          '<span class="value">' + value + '</span>' +
+          '</div>';
+      }
+
+      host.innerHTML = [
+        '<div class="analysis-head">',
+        '<span class="analysis-title"><strong>' + analysis.classification + '</strong><span class="info" data-tip="' + classificationTip(analysis) + '">?</span></span>',
+        '<span class="analysis-muted">' + analysis.moveCount + ' estimated moves for ' + analysis.brickCount + ' bricks</span>',
+        '</div>',
+        '<div class="analysis-grid">',
+        metricCell('Forced placements', analysis.forcedPlacements, 'A forced placement means the solver could see only one place where the next block still matched every blueprint. More forced steps usually make the puzzle feel easier.'),
+        metricCell('Ambiguous placements', analysis.ambiguousPlacements, 'An ambiguous placement means several positions still looked correct, so the solver had to test or guess between them. More ambiguous steps usually make the puzzle feel harder.'),
+        metricCell('Move ratio', analysis.moveRatio.toFixed(2), 'This compares all simulated moves to block count. The move total includes normal placements, relocations, and removals. A value near 1.0 means the solver mostly placed each block once.'),
+        metricCell('Max candidates', analysis.maxCandidateCount, 'This is the hardest single step: the highest number of places one block could legally go before the blueprints narrowed it down.'),
+        metricCell('Average candidates', analysis.averageCandidateCount.toFixed(1), 'This is the average number of valid places considered at each step. Lower values mean the build path is more clearly guided by the blueprints.'),
+        metricCell('Relocations', analysis.relocationCount, 'A relocation happens when the solver keeps the same physical block but moves it from a wrong spot directly to its target spot in one recovery move.'),
+        metricCell('Removals', analysis.removalCount, 'A removal happens when a wrong block has to be taken out of the build instead of being moved straight to the correct position.'),
+        metricCell('Breaking moves', analysis.breakingMoveCount, 'These are recovery moves that made one or more already placed blocks lose support and drop out of the build.'),
+        metricCell('Fallen pieces', analysis.totalFallenPieces, 'This counts every block that lost support and fell after another block was moved or removed.'),
+        metricCell('Largest fall', analysis.maxFallenPieces, 'This is the biggest single collapse: the highest number of blocks that fell because of one move.'),
+        metricCell('Solver status', analysis.solverStatus, 'Solved means the heuristic solver found a full build order, including recovery moves when a wrong placement blocked progress. Timed out means the solver stopped when it hit the analysis time budget so the page would stay responsive. Unresolved means the solver stopped for another reason before finishing.'),
+        '</div>'
+      ].join('');
+    }
+
     function run(done) {
       const p = getParams();
       const runVersion = ++_runVersion;
+      syncCurrentUrl(p);
 
       // 1. Generate blocks.
       const bricks = generate(
@@ -426,11 +770,19 @@
       );
       _lastBricks = bricks;
       _lastParams = p;
+      _lastAnalysis = analyzePuzzle(bricks, {
+        playerCount: p.playerCount,
+        plateLength: p.plateLength,
+        plateWidth: p.plateWidth,
+        maxAnalysisMs: ANALYSIS_MAX_MS,
+      });
+      updateShareButtons(p.playerCount);
+      renderAnalysis(_lastAnalysis);
 
       // 2. Blueprints — only for active players; hide the rest.
       for (let pi = 1; pi <= 4; pi++) {
         const card = document.getElementById('bp' + pi).parentElement;
-        if (pi <= p.playerCount) {
+        if (shouldShowBlueprintCard(pi, p.playerCount)) {
           const bp = createForPlayer(
             pi, p.seed, bricks, p.plateLength, p.plateWidth,
             brickPalette, plateBodyColor, plateStudColor
@@ -443,20 +795,20 @@
       }
 
       // 3. 3D scene.
-      buildScene(bricks, p.plateLength, p.plateWidth, p.playerCount);
+      buildScene(bricks, p.plateLength, p.plateWidth, 4);
 
       // Mark run complete before snapshots so queue progress never depends on
       // requestAnimationFrame timing.
       if (done) done();
 
-      // 4. Corner snapshots — only for active players.
+      // 4. Corner snapshots — always show all four directions.
       requestAnimationFrame(() => {
         if (runVersion !== _runVersion) return;
 
-        const snaps = captureCornerSnapshots(p.plateLength, p.plateWidth, p.playerCount);
+        const snaps = captureCornerSnapshots(p.plateLength, p.plateWidth, 4);
         for (let i = 0; i < 4; i++) {
           const card = document.getElementById('snap' + (i + 1)).parentElement;
-          if (i < p.playerCount) {
+          if (shouldShowSnapshotCard(i + 1, p.playerCount)) {
             document.getElementById('snap' + (i + 1)).src = snaps[i];
             card.style.display = '';
           } else {
@@ -497,6 +849,12 @@
     document.getElementById('btn-randomize').addEventListener('click', () => {
       document.getElementById('seed').value = Math.floor(Math.random() * 999999);
       scheduleRun();
+    });
+
+    document.querySelectorAll('.share-player-btn').forEach(function(button) {
+      button.addEventListener('click', function() {
+        copyBlueprintUrl(parseInt(button.getAttribute('data-player'), 10));
+      });
     });
 
     // Pressing Enter in the seed field regenerates with that seed.
@@ -613,7 +971,7 @@
       // Full parameter block.
       doc.setFontSize(7);
       const paramLines = [
-        `Version: ${VERSION}`,
+        `Version: ${VERSION_LABEL}`,
         `Seed: ${seed}  |  Plate: ${p.plateLength}\u00d7${p.plateWidth}  |  Blocks: ${p.brickCount}  |  Players: ${p.playerCount}  |  Difficulty: ${p.difficulty}`,
         `Height: ${p.minHeight}\u2013${p.maxHeight}  |  Max Extent: ${p.maxExtent}  |  Max Blocks/Layer: ${p.maxBricksPerLayer}  |  Force Connected: ${p.forceConnected ? 'Yes' : 'No'}`,
       ];
@@ -622,13 +980,14 @@
 
       const snapLabels = PLAYER_NAMES.map(n => `${n} — corner view`);
       const snapTop = 18 + paramLines.length * 4 + 4;
-      const snapCols = p.playerCount <= 2 ? 1 : 2;
-      const snapRows = Math.ceil(p.playerCount / snapCols);
+      const snapPlayerCount = 4;
+      const snapCols = 2;
+      const snapRows = 2;
       const snapCellW = snapCols === 1 ? (pw - 2 * m) : (pw - 3 * m) / 2;
       const snapCellH = (ph - snapTop - (snapRows > 1 ? 3 : 2) * m) / snapRows;
       const snapSize = Math.min(snapCellW, snapCellH - 6);
 
-      for (let i = 0; i < p.playerCount; i++) {
+      for (let i = 0; i < snapPlayerCount; i++) {
         const col = i % snapCols, row = Math.floor(i / snapCols);
         const x = m + col * (snapCellW + m);
         const y = snapTop + row * (snapCellH + m);
@@ -675,6 +1034,7 @@
 
     // Init 3D and auto-generate once the page (including CDN scripts) is ready.
     window.addEventListener('load', function () {
+      applyParamsFromUrl();
       init3D(document.getElementById('three-container'));
       scheduleRun();
     });
