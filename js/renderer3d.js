@@ -30,6 +30,9 @@ var _studGeo  = null;
 var _renderer, _scene, _camera, _controls, _dirLight;
 var _captureRenderer = null;
 var _captureCamera = null;
+var _backgroundTexture = null;
+var _resizeObserver = null;
+var _liveBackgroundMode = 'black';
 
 function getCaptureRenderer(size) {
   if (!_captureRenderer) {
@@ -55,18 +58,112 @@ function getCaptureCamera(fov) {
   return _captureCamera;
 }
 
+function getSceneBackgroundTexture() {
+  if (_backgroundTexture) return _backgroundTexture;
+
+  var size = 768;
+  var canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  var ctx = canvas.getContext('2d');
+
+  // More pronounced blue gradient and glow
+  var base = ctx.createLinearGradient(0, 0, 0, size);
+  base.addColorStop(0, '#1b2e4a');
+  base.addColorStop(0.35, '#18305a');
+  base.addColorStop(0.7, '#0e1a2a');
+  base.addColorStop(1, '#070b11');
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, size, size);
+
+  // Stronger blue glow
+  var glow = ctx.createRadialGradient(size * 0.5, size * 0.26, size * 0.06, size * 0.5, size * 0.26, size * 0.62);
+  glow.addColorStop(0, 'rgba(118, 178, 255, 0.38)');
+  glow.addColorStop(0.3, 'rgba(59, 106, 176, 0.22)');
+  glow.addColorStop(0.7, 'rgba(0, 40, 80, 0.10)');
+  glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, size, size);
+
+  // Subtle color shift at horizon
+  var horizon = ctx.createLinearGradient(0, size * 0.5, 0, size * 0.88);
+  horizon.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  horizon.addColorStop(0.22, 'rgba(110, 154, 214, 0.10)');
+  horizon.addColorStop(0.5, 'rgba(73, 110, 168, 0.22)');
+  horizon.addColorStop(0.85, 'rgba(12, 18, 28, 0.44)');
+  horizon.addColorStop(1, 'rgba(7, 11, 17, 0.82)');
+  ctx.fillStyle = horizon;
+  ctx.fillRect(0, size * 0.5, size, size * 0.38);
+
+  ctx.strokeStyle = 'rgba(190, 224, 255, 0.10)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(size * 0.1, size * 0.7);
+  ctx.quadraticCurveTo(size * 0.5, size * 0.62, size * 0.9, size * 0.7);
+  ctx.stroke();
+
+  for (var i = 0; i < 1400; i++) {
+    var x = Math.random() * size;
+    var y = Math.random() * size;
+    var alpha = y > size * 0.7 ? 0.018 : 0.032;
+    ctx.fillStyle = 'rgba(255,255,255,' + alpha + ')';
+    ctx.fillRect(x, y, 1, 1);
+  }
+
+  var vignette = ctx.createRadialGradient(size * 0.5, size * 0.5, size * 0.22, size * 0.5, size * 0.5, size * 0.72);
+  vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  vignette.addColorStop(1, 'rgba(0, 0, 0, 0.46)');
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, size, size);
+
+  _backgroundTexture = new THREE.CanvasTexture(canvas);
+  _backgroundTexture.encoding = THREE.sRGBEncoding;
+  return _backgroundTexture;
+}
+
+function applyLiveBackgroundMode() {
+  if (!_scene) return;
+
+  if (_liveBackgroundMode === 'atmospheric') {
+    _scene.background = getSceneBackgroundTexture();
+    // Denser, more visible fog for effect
+    _scene.fog = new THREE.Fog(0x18305a, 18, 44);
+  } else {
+    _scene.background = new THREE.Color(0x000000);
+    _scene.fog = null;
+  }
+}
+
+function setLiveBackgroundMode(mode) {
+  _liveBackgroundMode = mode === 'atmospheric' ? 'atmospheric' : 'black';
+  applyLiveBackgroundMode();
+}
+
+function syncRendererSize(container) {
+  if (!_renderer || !_camera || !container) return;
+
+  var width = Math.max(1, Math.floor(container.clientWidth));
+  var height = Math.max(1, Math.floor(container.clientHeight));
+
+  _camera.aspect = width / height;
+  _camera.updateProjectionMatrix();
+  _renderer.setSize(width, height, false);
+}
+
 function init3D(container) {
   _renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   _renderer.setPixelRatio(window.devicePixelRatio);
-  _renderer.setSize(Math.max(1, container.clientWidth), Math.max(1, container.clientHeight));
+  _renderer.domElement.style.width = '100%';
+  _renderer.domElement.style.height = '100%';
   _renderer.shadowMap.enabled    = true;
   _renderer.shadowMap.type       = THREE.PCFSoftShadowMap;
   _renderer.toneMapping          = THREE.ACESFilmicToneMapping;
   _renderer.toneMappingExposure  = 1.0;
   container.appendChild(_renderer.domElement);
+  syncRendererSize(container);
 
   _scene = new THREE.Scene();
-  _scene.background = new THREE.Color(0xf0f0f0);
+  applyLiveBackgroundMode();
 
   _camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 500);
   _camera.position.set(12, 10, 12);
@@ -99,11 +196,19 @@ function init3D(container) {
   })();
 
   window.addEventListener('resize', function() {
-    _camera.aspect = container.clientWidth / container.clientHeight;
-    _camera.updateProjectionMatrix();
-    _renderer.setSize(container.clientWidth, container.clientHeight);
+    syncRendererSize(container);
   });
+
+  if (typeof ResizeObserver === 'function') {
+    if (_resizeObserver) _resizeObserver.disconnect();
+    _resizeObserver = new ResizeObserver(function() {
+      syncRendererSize(container);
+    });
+    _resizeObserver.observe(container);
+  }
 }
+
+window.setLiveBackgroundMode = setLiveBackgroundMode;
 
 // Plastic-looking standard material for block bodies.
 function plasticMat(color) {
@@ -336,12 +441,27 @@ function captureCornerSnapshots(plateLength, plateWidth, playerCount) {
   var off = getCaptureRenderer(sz);
   var cam = getCaptureCamera(45);
   var results = [];
+  var previousBackground = _scene.background;
+  var previousFog = _scene.fog;
+  var previousClearColor = new THREE.Color();
+  off.getClearColor(previousClearColor);
+  var previousClearAlpha = off.getClearAlpha();
 
-  for (var i = 0; i < playerCount; i++) {
-    cam.position.copy(corners[i]);
-    cam.lookAt(tgt);
-    off.render(_scene, cam);
-    results.push(off.domElement.toDataURL('image/png'));
+  _scene.background = null;
+  _scene.fog = null;
+  off.setClearColor(0xffffff, 1);
+
+  try {
+    for (var i = 0; i < playerCount; i++) {
+      cam.position.copy(corners[i]);
+      cam.lookAt(tgt);
+      off.render(_scene, cam);
+      results.push(off.domElement.toDataURL('image/png'));
+    }
+  } finally {
+    _scene.background = previousBackground;
+    _scene.fog = previousFog;
+    off.setClearColor(previousClearColor, previousClearAlpha);
   }
 
   return results;

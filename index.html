@@ -7,10 +7,18 @@
   <title>Caaluza Statue Generator</title>
   <style>
     :root {
-      --bg: #f8f8f8;
-      --card: #fff;
-      --border: #ccc;
-      --accent: #2060c0;
+      color-scheme: dark;
+      --bg: #0b1118;
+      --bg-accent: #162435;
+      --card: rgba(19, 27, 39, 0.94);
+      --card-muted: rgba(10, 15, 22, 0.96);
+      --border: #2d3b4e;
+      --accent: #6dc6ff;
+      --text: #eaf1fb;
+      --text-muted: #9aa9bc;
+      --input-bg: #091019;
+      --header-bg: linear-gradient(135deg, #1d3047 0%, #0d141d 72%);
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
     }
 
     * {
@@ -21,13 +29,17 @@
 
     body {
       font-family: system-ui, sans-serif;
-      background: var(--bg);
-      color: #222;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, var(--bg-accent) 0%, var(--bg) 42%, #05080d 100%);
+      color: var(--text);
     }
 
     header {
-      background: var(--accent);
-      color: #fff;
+      background: var(--header-bg);
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
       padding: 12px 24px;
       display: flex;
       align-items: center;
@@ -40,7 +52,7 @@
 
     header .version {
       font-size: 0.75rem;
-      opacity: 0.7;
+      color: var(--text-muted);
     }
 
     .layout {
@@ -48,6 +60,17 @@
       grid-template-columns: 280px 1fr;
       gap: 16px;
       padding: 16px;
+    }
+
+    .layout > div,
+    .outputs,
+    .bp-grid,
+    .snap-grid,
+    .qr-column,
+    .bp-grid > div,
+    .snap-grid > div,
+    .qr-card {
+      min-width: 0;
     }
 
     @media (max-width: 900px) {
@@ -60,8 +83,9 @@
     .panel {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 14px;
       padding: 16px;
+      box-shadow: var(--shadow);
     }
 
     .panel h2 {
@@ -90,6 +114,14 @@
       border: 1px solid var(--border);
       border-radius: 4px;
       width: 100%;
+      background: var(--input-bg);
+      color: var(--text);
+    }
+
+    .field input[type=number]:focus,
+    .field select:focus {
+      outline: 2px solid rgba(109, 198, 255, 0.24);
+      border-color: var(--accent);
     }
 
     .field-row {
@@ -113,13 +145,14 @@
       padding: 8px 16px;
       border: none;
       border-radius: 4px;
-      background: var(--accent);
-      color: #fff;
+      background: linear-gradient(135deg, #2f7dd6 0%, #1d4f85 100%);
+      color: var(--text);
       font-weight: 600;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
 
     button:hover {
-      opacity: 0.9;
+      filter: brightness(1.05);
     }
 
     .btn-row {
@@ -132,7 +165,7 @@
     .share-status {
       margin-top: 8px;
       min-height: 1.2em;
-      color: #52606d;
+      color: var(--text-muted);
       font-size: 0.8rem;
     }
 
@@ -145,7 +178,7 @@
     .share-group-title {
       font-size: 0.8rem;
       font-weight: 600;
-      color: #52606d;
+      color: var(--text-muted);
     }
 
     .share-button-grid {
@@ -159,7 +192,7 @@
     }
 
     .share-status.error {
-      color: #9d2f2f;
+      color: #ff8e8e;
     }
 
     .analysis-box {
@@ -167,7 +200,7 @@
       padding: 12px;
       border: 1px solid var(--border);
       border-radius: 8px;
-      background: #f1f4f7;
+      background: var(--card-muted);
       display: grid;
       gap: 8px;
     }
@@ -190,7 +223,7 @@
     }
 
     .analysis-muted {
-      color: #52606d;
+      color: var(--text-muted);
       font-size: 0.82rem;
     }
 
@@ -205,7 +238,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      color: #52606d;
+      color: var(--text-muted);
       font-size: 0.75rem;
     }
 
@@ -218,7 +251,7 @@
     .btn-sm {
       padding: 4px 8px;
       font-size: 0.8rem;
-      background: #666;
+      background: #293648;
     }
 
     /* ---- Tooltip icon ---- */
@@ -229,8 +262,8 @@
       width: 15px;
       height: 15px;
       border-radius: 50%;
-      background: #aaa;
-      color: #fff;
+      background: #41536a;
+      color: var(--text);
       font-size: 0.65rem;
       font-weight: 700;
       cursor: help;
@@ -243,8 +276,9 @@
       position: absolute;
       left: 20px;
       top: -4px;
-      background: #333;
-      color: #fff;
+      background: #05080d;
+      color: var(--text);
+      border: 1px solid var(--border);
       padding: 5px 8px;
       border-radius: 4px;
       font-size: 0.75rem;
@@ -258,6 +292,7 @@
       letter-spacing: normal;
       z-index: 10;
       pointer-events: none;
+      box-shadow: var(--shadow);
     }
 
     /* ---- 3D view ---- */
@@ -267,6 +302,13 @@
       border-radius: 8px;
       overflow: hidden;
       border: 1px solid var(--border);
+      min-width: 0;
+    }
+
+    #three-container canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
     }
 
     body.map-only header,
@@ -287,6 +329,13 @@
     body.map-only .outputs,
     body.blueprint-only .outputs {
       grid-column: auto;
+    }
+
+    body.map-only #patch-notes-title,
+    body.map-only #patch-notes,
+    body.blueprint-only #patch-notes-title,
+    body.blueprint-only #patch-notes {
+      display: none;
     }
 
     body.blueprint-only #three-container,
@@ -313,6 +362,7 @@
       font-size: 1.05rem;
       font-weight: 700;
       margin: 20px 0 10px;
+      color: var(--text);
     }
 
     .bp-grid,
@@ -320,6 +370,16 @@
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 12px;
+    }
+
+    .bp-grid > div,
+    .snap-grid > div,
+    .qr-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: var(--shadow);
     }
 
     .bp-grid canvas,
@@ -330,10 +390,95 @@
       background: #fff;
     }
 
+    .qr-column {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+      width: 100%;
+      align-items: start;
+    }
+
+    .qr-card canvas {
+      max-width: 180px;
+      max-height: 180px;
+      width: 100%;
+      height: auto;
+      margin: 0 auto;
+      display: block;
+    }
+
+    .qr-card canvas {
+      width: 100%;
+      aspect-ratio: 1;
+      border: 1px solid #d7dde7;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .qr-link {
+      display: inline-flex;
+      margin-top: 8px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.8rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .qr-link:hover {
+      text-decoration: underline;
+    }
+
     .card-label {
       font-size: 0.8rem;
       font-weight: 600;
       margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    .patch-notes {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 10px;
+    }
+
+    .patch-notes-version {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: baseline;
+    }
+
+    .patch-notes-version strong {
+      font-size: 1rem;
+    }
+
+    .patch-notes-date {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+
+    .patch-notes-list {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+      color: var(--text);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    body.blueprint-only .qr-column {
+      display: none !important;
     }
 
     @media print {
@@ -355,6 +500,14 @@
         display: block !important;
       }
 
+      .bp-grid>div,
+      .qr-card {
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+      }
+
       .bp-grid>div {
         page-break-inside: avoid;
         margin-bottom: 16px;
@@ -363,6 +516,15 @@
       .bp-grid canvas {
         width: 100% !important;
         max-width: 600px;
+      }
+
+      .qr-link {
+        color: #000 !important;
+      }
+
+      #patch-notes-title,
+      #patch-notes {
+        display: none !important;
       }
     }
   </style>
@@ -373,7 +535,7 @@
 
   <header>
     <h1>Caaluza Statue Generator</h1>
-    <span class="version">v0.1.0 (2026-04-28)</span>
+    <span class="version">v0.2.0 (2026-04-30)</span>
   </header>
 
   <div class="layout">
@@ -443,6 +605,12 @@
         data-tip="Every block must be face-adjacent to an existing block (always on at difficulty ≥ 2)">?</span></label>
       </div>
 
+      <div class="field field-check">
+        <input type="checkbox" id="atmosphericBackground">
+        <label for="atmosphericBackground">Atmospheric 3D Background <span class="info"
+        data-tip="Toggles the live 3D viewport between a plain black backdrop and a darker atmospheric background. Solution view images stay white either way.">?</span></label>
+      </div>
+
       <div class="btn-row">
         <button id="btn-generate">Generate</button>
         <button id="btn-randomize">🎲 Randomize</button>
@@ -450,7 +618,7 @@
       </div>
 
       <div class="share-group">
-        <div class="share-group-title">Blueprint URLs</div>
+        <div class="share-group-title">Copy Blueprint URLs</div>
         <div class="share-button-grid" id="share-button-grid">
           <button class="btn-sm share-player-btn" data-player="0">🔗 Caaluza URL</button>
           <button class="btn-sm share-player-btn" data-player="1">🔗 Oedan URL</button>
@@ -489,6 +657,29 @@
         </div>
       </div>
 
+      <div class="qr-column" id="qr-column" aria-label="Blueprint QR codes">
+        <div class="qr-card" id="qr-card-1">
+          <div class="card-label">Caaluza Blueprint QR</div>
+          <canvas id="qr1"></canvas>
+          <a class="qr-link" id="qr-link-1" target="_blank" rel="noopener noreferrer">Open Caaluza blueprint URL</a>
+        </div>
+        <div class="qr-card" id="qr-card-2">
+          <div class="card-label">Oedan Blueprint QR</div>
+          <canvas id="qr2"></canvas>
+          <a class="qr-link" id="qr-link-2" target="_blank" rel="noopener noreferrer">Open Oedan blueprint URL</a>
+        </div>
+        <div class="qr-card" id="qr-card-3">
+          <div class="card-label">Sigarus Blueprint QR</div>
+          <canvas id="qr3"></canvas>
+          <a class="qr-link" id="qr-link-3" target="_blank" rel="noopener noreferrer">Open Sigarus blueprint URL</a>
+        </div>
+        <div class="qr-card" id="qr-card-4">
+          <div class="card-label">Alx Blueprint QR</div>
+          <canvas id="qr4"></canvas>
+          <a class="qr-link" id="qr-link-4" target="_blank" rel="noopener noreferrer">Open Alx blueprint URL</a>
+        </div>
+      </div>
+
       <div class="section-title" id="solutions-title">Solution Views</div>
       <div class="snap-grid" id="snap-grid">
         <div>
@@ -504,12 +695,27 @@
           <div class="card-label">Alx — corner view</div><img id="snap4">
         </div>
       </div>
+
+      <div class="section-title" id="patch-notes-title">Patch Notes</div>
+      <section class="patch-notes" id="patch-notes" aria-label="Patch notes">
+        <div class="patch-notes-version">
+          <strong>v0.2.0</strong>
+          <span class="patch-notes-date">2026-04-30</span>
+        </div>
+        <ul class="patch-notes-list">
+          <li>Added per-player QR codes for blueprint URLs directly below the Player Blueprints section.</li>
+          <li>Kept solution-view snapshots on a plain white background for cleaner reference images.</li>
+          <li>Fixed responsive resizing so the 3D viewport and QR cards shrink correctly when the browser window gets smaller.</li>
+          <li>Added a toggle for switching the live 3D viewport between solid black and an atmospheric background.</li>
+        </ul>
+      </section>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="./js/qr.js"></script>
   <script src="./js/types.js"></script>
   <script src="./js/rng.js"></script>
   <script src="./js/mapgenerator.js"></script>
@@ -520,8 +726,8 @@
   <script>
 
     const ANALYSIS_MAX_MS = 5000;
-  const VERSION = '0.1.0';
-  const VERSION_DATE = '2026-04-28';
+  const VERSION = '0.2.0';
+  const VERSION_DATE = '2026-04-30';
   const VERSION_LABEL = 'v' + VERSION + ' (' + VERSION_DATE + ')';
     const PLAYER_NAMES = ['Caaluza', 'Oedan', 'Sigarus', 'Alx'];
     const VIEW_MODE_APP = 'app';
@@ -564,6 +770,7 @@
     var _runBusy = false, _runPending = false, _runVersion = 0;
     var _viewMode = VIEW_MODE_APP;
     var _blueprintPlayerIndex = null;
+    const BACKGROUND_MODE_STORAGE_KEY = 'caaluza-live-background-mode';
 
     function getParams() {
       return {
@@ -614,6 +821,32 @@
       const value = parseInt(rawValue, 10);
       if (!Number.isFinite(value)) return null;
       return Math.max(0, Math.min(3, value));
+    }
+
+    function getStoredBackgroundMode() {
+      try {
+        const mode = window.localStorage.getItem(BACKGROUND_MODE_STORAGE_KEY);
+        return mode === 'atmospheric' ? 'atmospheric' : 'black';
+      } catch (error) {
+        return 'black';
+      }
+    }
+
+    function setStoredBackgroundMode(mode) {
+      try {
+        window.localStorage.setItem(BACKGROUND_MODE_STORAGE_KEY, mode === 'atmospheric' ? 'atmospheric' : 'black');
+      } catch (error) {
+        // Ignore storage failures and keep the in-memory toggle working.
+      }
+    }
+
+    function applyBackgroundToggle(mode) {
+      const resolvedMode = mode === 'atmospheric' ? 'atmospheric' : 'black';
+      const toggle = document.getElementById('atmosphericBackground');
+      if (toggle) toggle.checked = resolvedMode === 'atmospheric';
+      if (typeof window.setLiveBackgroundMode === 'function') {
+        window.setLiveBackgroundMode(resolvedMode);
+      }
     }
 
     function applyViewMode(viewMode) {
@@ -687,6 +920,45 @@
         url,
         PLAYER_NAMES[playerIndex] + ' blueprint URL copied. Opening it will show only that blueprint.'
       );
+    }
+
+    function renderBlueprintQRCodes(params) {
+      // Hide the entire QR code column in blueprint-only view
+      const qrColumn = document.getElementById('qr-column');
+      if (document.body.classList.contains('blueprint-only')) {
+        if (qrColumn) qrColumn.style.display = 'none';
+        return;
+      } else {
+        if (qrColumn) qrColumn.style.display = '';
+      }
+
+      for (let playerIndex = 0; playerIndex < 4; playerIndex++) {
+        const card = document.getElementById('qr-card-' + (playerIndex + 1));
+        const canvas = document.getElementById('qr' + (playerIndex + 1));
+        const link = document.getElementById('qr-link-' + (playerIndex + 1));
+
+        if (playerIndex >= params.playerCount) {
+          card.style.display = 'none';
+          link.removeAttribute('href');
+          link.removeAttribute('title');
+          continue;
+        }
+
+        const url = buildMapUrl(params, VIEW_MODE_BLUEPRINT, playerIndex);
+
+        card.style.display = '';
+        link.href = url;
+        link.title = url;
+        link.textContent = 'Open ' + PLAYER_NAMES[playerIndex] + ' blueprint URL';
+
+        canvas.hidden = false;
+        const qrSize = Math.max(220, Math.round(canvas.getBoundingClientRect().width * (window.devicePixelRatio || 1)));
+        const rendered = typeof window.renderQrCodeToCanvas === 'function' && window.renderQrCodeToCanvas(canvas, url, qrSize);
+        if (!rendered) {
+          canvas.hidden = true;
+          link.textContent = 'Blueprint URL is too long to encode as a QR code here';
+        }
+      }
     }
 
     function updateShareButtons(playerCount) {
@@ -793,6 +1065,7 @@
           card.style.display = 'none';
         }
       }
+      renderBlueprintQRCodes(p);
 
       // 3. 3D scene.
       buildScene(bricks, p.plateLength, p.plateWidth, 4);
@@ -849,6 +1122,12 @@
     document.getElementById('btn-randomize').addEventListener('click', () => {
       document.getElementById('seed').value = Math.floor(Math.random() * 999999);
       scheduleRun();
+    });
+
+    document.getElementById('atmosphericBackground').addEventListener('change', function(event) {
+      const mode = event.target.checked ? 'atmospheric' : 'black';
+      setStoredBackgroundMode(mode);
+      applyBackgroundToggle(mode);
     });
 
     document.querySelectorAll('.share-player-btn').forEach(function(button) {
@@ -1036,6 +1315,7 @@
     window.addEventListener('load', function () {
       applyParamsFromUrl();
       init3D(document.getElementById('three-container'));
+      applyBackgroundToggle(getStoredBackgroundMode());
       scheduleRun();
     });
   </script>
